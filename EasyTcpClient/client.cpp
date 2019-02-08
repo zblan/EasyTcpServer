@@ -37,7 +37,7 @@ struct LoginResult
 	int result;
 
 };
-struct LoginResult
+struct LogoutResult
 {
 	int result;
 };
@@ -84,17 +84,41 @@ int main()
 		{
 			printf("get exit command");
 			break;
-		}else {
+		}
+		else if (0 == strcmp(cmdBuff, "login"))
+		{
+			Login login = {"lanzhibo","123"};
+			DataHeader dh = { sizeof(Login),  CMD_LOGIN };
+			//5 向服务器发送请求命令
+			send(_sock, (char*)&dh, sizeof(DataHeader), 0);
+			//向服务器发送登陆信息
+			send(_sock, (const char *)&login, sizeof(Login), 0);
+			//接收服务器返回的信息
+			DataHeader retHeader = {};
+			LoginResult loginRet = {};
+			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char*)&loginRet, sizeof(LoginResult), 0);
+			printf("LoginResult:%d \n", loginRet.result);
+		}
+		else if (0 == strcmp(cmdBuff, "logout"))
+		{
+			LoginOut logout = {"lanzhibo"};
+			DataHeader dh = { sizeof(LoginOut),  CMD_LOGINOUT };
 			//5 向服务器发送命令
-			send(_sock, cmdBuff, strlen(cmdBuff)+1, 0);
+			send(_sock, (char*)&dh, sizeof(DataHeader), 0);
+			send(_sock,(char*)&logout, sizeof(LoginOut), 0);
+			//接收服务器返回的数据
+			DataHeader retHeader = {};
+			LogoutResult logoutRet = {};
+			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
+			printf("LogoutResilt:%d \n", logoutRet.result);
+
 		}
-		//6 接收服务器信息 recv
-		char recvBuf[256] = {};
-		int nlen = recv(_sock, recvBuf, 256, 0);
-		if (nlen > 0) {
-			DataPackage* dp = (DataPackage*)recvBuf;
-			printf("接收到数据：年龄=%d，姓名=%s \n",dp->age, dp->name);
+		else {
+			printf("不支持的命令，请重新输入\n");
 		}
+		
 	}
 	
 	//4 关闭套接字closesocket
