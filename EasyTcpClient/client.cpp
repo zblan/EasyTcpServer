@@ -10,41 +10,57 @@
 //#pragma comment(lib, "ws2_32.lib")
 #include<stdio.h>
 
-//内存对齐
-//与server端的struct datapackage变量类型顺序一致
-struct DataPackage
-{
-	//long 在64位中是64字节    在32位只有4字节
-	int age;
-	char name[32];
-};
-enum CMD
-{
-	CMD_LOGIN,
-	CMD_LOGINOUT
-};
-struct Login
-{
-	char userName[32];
-	char passWord[32];
-};
-struct LoginOut
-{
-	char userName[32];
-};
-struct LoginResult
-{
-	int result;
-
-};
-struct LogoutResult
-{
-	int result;
-};
 struct DataHeader
 {
 	short dataLength;
 	short cmd;
+};
+enum CMD
+{
+	CMD_LOGIN,
+	CMD_LOGINOUT,
+	CMD_LOGIN_RESULT,
+	CMD_LOGOUT_RESULT,
+	CMD_ERROR
+};
+struct Login : public DataHeader
+{
+	Login()
+	{
+		dataLength = sizeof(Login);
+		cmd = CMD_LOGIN;
+	}
+	char userName[32];
+	char passWord[32];
+};
+struct LoginOut : public DataHeader
+{
+	LoginOut()
+	{
+		dataLength = sizeof(LoginOut);
+		cmd = CMD_LOGINOUT;
+	}
+	char userName[32];
+};
+struct LoginResult : public DataHeader
+{
+	LoginResult()
+	{
+		dataLength = sizeof(LoginResult);
+		cmd = CMD_LOGIN_RESULT;
+		result = 1;
+	}
+	int result;
+};
+struct LogoutResult : public DataHeader
+{
+	LogoutResult()
+	{
+		dataLength = sizeof(LoginResult);
+		cmd = CMD_LOGOUT_RESULT;
+		result = 0;
+	}
+	int result;
 };
 int main()
 {
@@ -87,30 +103,24 @@ int main()
 		}
 		else if (0 == strcmp(cmdBuff, "login"))
 		{
-			Login login = {"lanzhibo","123"};
-			DataHeader dh = { sizeof(Login),  CMD_LOGIN };
 			//5 向服务器发送请求命令
-			send(_sock, (char*)&dh, sizeof(DataHeader), 0);
-			//向服务器发送登陆信息
-			send(_sock, (const char *)&login, sizeof(Login), 0);
+			Login login;
+			strcpy(login.userName, "lanzhibo");
+			strcpy(login.passWord, "123456");
+			send(_sock, (const char*)&login, sizeof(Login), 0);
 			//接收服务器返回的信息
-			DataHeader retHeader = {};
 			LoginResult loginRet = {};
-			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
-			recv(_sock, (char*)&loginRet, sizeof(LoginResult), 0);
+			recv(_sock, (char*)&loginRet , sizeof(Login), 0);
 			printf("LoginResult:%d \n", loginRet.result);
 		}
 		else if (0 == strcmp(cmdBuff, "logout"))
 		{
-			LoginOut logout = {"lanzhibo"};
-			DataHeader dh = { sizeof(LoginOut),  CMD_LOGINOUT };
+			LoginOut logout;
+			strcpy(logout.userName, "lanzhibo");
 			//5 向服务器发送命令
-			send(_sock, (char*)&dh, sizeof(DataHeader), 0);
-			send(_sock,(char*)&logout, sizeof(LoginOut), 0);
+			send(_sock,(const char*)&logout, sizeof(LoginOut), 0);
 			//接收服务器返回的数据
-			DataHeader retHeader = {};
 			LogoutResult logoutRet = {};
-			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
 			recv(_sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
 			printf("LogoutResilt:%d \n", logoutRet.result);
 
