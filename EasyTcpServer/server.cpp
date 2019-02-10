@@ -131,19 +131,23 @@ int main()
 
 	while (true) 
 	{
-		DataHeader header = {};
+		
+		//缓冲区,把消息先放到缓冲区里面
+		char szRecv[1024] = {};
 		//5接收客户端数据
-		int nLen = recv(_cSock, (char*)&header, sizeof(DataHeader), 0);
+		int nLen = recv(_cSock, (char*)&szRecv, sizeof(DataHeader), 0);
+		DataHeader* header = (DataHeader*)szRecv;
 		if (nLen <= 0) {
 			printf("kehuduan tuichu");
 			break;
 		}
-		switch (header.cmd) {
+		switch (header->cmd) {
 			case CMD_LOGIN:
-			{
-				Login login = {};
-				recv(_cSock, (char*)&login+sizeof(DataHeader), sizeof(Login)- sizeof(DataHeader), 0);
-				printf("收到命令：cmd_login 数据长度：%d, userName=%s, passWd = %s \n", login.dataLength, login.userName, login.passWord);
+			{	
+				recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+				//取到消息   把消息对应到消息体里面
+				Login* login = (Login*)szRecv;
+				printf("收到命令：cmd_login 数据长度：%d, userName=%s, passWd = %s \n", login->dataLength, login->userName, login->passWord);
 				//忽略判断用户名密码是否正确
 				LoginResult loginRet;
 				send(_cSock, (char*)&loginRet, sizeof(LoginResult), 0);
@@ -151,9 +155,9 @@ int main()
 			break;
 			case CMD_LOGINOUT:
 			{
-				LoginOut logout = {};
-				recv(_cSock, (char*)&logout+sizeof(DataHeader), sizeof(LoginOut)-sizeof(DataHeader), 0);
-				printf("收到命令：cmd_logout 数据长度：%d, userName=%s \n", logout.dataLength, logout.userName);
+				recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+				LoginOut* logout = (LoginOut*)szRecv;
+				printf("收到命令：cmd_logout 数据长度：%d, userName=%s \n", logout->dataLength, logout->userName);
 
 				//忽略判断用户名密码是否正确
 				LogoutResult logoutRet;
@@ -161,8 +165,8 @@ int main()
 			}
 			break;
 			default:
-				header.cmd = CMD_ERROR;
-				header.dataLength = 0;
+				header->cmd = CMD_ERROR;
+				header->dataLength = 0;
 				send(_cSock, (char*)&header, sizeof(header), 0);
 			break;
 		}
