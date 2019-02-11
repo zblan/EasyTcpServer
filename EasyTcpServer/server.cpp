@@ -29,6 +29,7 @@ enum CMD
 	CMD_LOGINOUT,
 	CMD_LOGIN_RESULT,
 	CMD_LOGOUT_RESULT,
+	CMD_NEW_USER_JOIN,
 	CMD_ERROR
 };
 struct Login : public DataHeader
@@ -70,6 +71,16 @@ struct LogoutResult: public DataHeader
 	}
 	int result;
 };
+struct NewUserJoin : public DataHeader
+{
+	NewUserJoin()
+	{
+		dataLength = sizeof(NewUserJoin);
+		cmd = CMD_NEW_USER_JOIN;
+		sock_id = 0;
+	}
+	int sock_id;
+};
 std::vector<SOCKET> g_clients;
 
 int process(SOCKET _cSock)
@@ -80,7 +91,7 @@ int process(SOCKET _cSock)
 	int nLen = recv(_cSock, (char*)&szRecv, sizeof(DataHeader), 0);
 	DataHeader* header = (DataHeader*)szRecv;
 	if (nLen <= 0) {
-		printf("kehuduan tuichu");
+		printf("客户端<Socket=%d>已退出，任务结束。\n", _cSock);
 		return -1;
 	}
 	switch (header->cmd) {
@@ -89,7 +100,7 @@ int process(SOCKET _cSock)
 		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 		//取到消息   把消息对应到消息体里面
 		Login* login = (Login*)szRecv;
-		printf("收到命令：cmd_login 数据长度：%d, userName=%s, passWd = %s \n", login->dataLength, login->userName, login->passWord);
+		printf("收到客户端<Socket=%d>请求：cmd_login 数据长度：%d, userName=%s, passWd = %s \n", _cSock , login->dataLength, login->userName, login->passWord);
 		//忽略判断用户名密码是否正确
 		LoginResult loginRet;
 		send(_cSock, (char*)&loginRet, sizeof(LoginResult), 0);
@@ -99,7 +110,7 @@ int process(SOCKET _cSock)
 	{
 		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 		LoginOut* logout = (LoginOut*)szRecv;
-		printf("收到命令：cmd_logout 数据长度：%d, userName=%s \n", logout->dataLength, logout->userName);
+		printf("收到客户端<Socket=%d>请求：cmd_logout 数据长度：%d, userName=%s \n", _cSock , logout->dataLength, logout->userName);
 
 		//忽略判断用户名密码是否正确
 		LogoutResult logoutRet;
@@ -199,6 +210,11 @@ int main()
 			if (_cSock == INVALID_SOCKET)
 			{
 				printf("ERROR,接收到无效客户端连接\n");
+			}
+			for (int n = (int)g_clients.size() - 1; n >= 0; n--)
+			{
+				NewUserJoin userJoin;
+				send(g_clients[n], (const char*)&userJoin, sizeof(NewUserJoin), 0);
 			}
 			g_clients.push_back(_cSock);
 			printf("新客户端加入：ip = %s \n", inet_ntoa(clientAddr.sin_addr));
