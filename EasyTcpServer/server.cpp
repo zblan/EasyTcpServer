@@ -172,7 +172,7 @@ int main()
 		{
 			FD_SET(g_clients[n], &fdRead);
 		}
-		//select最后一个参数  设置时间t   查询等待时间，到了t时间没有请求，返回
+		//select最后一个参数  设置时间t，将select变为非阻塞   查询等待时间，到了t时间没有请求，返回
 		timeval t = {0,0};
 		//伯克利 socket
 		//nfds 第一个参数,是指fd_set集合中所有描述符(socket)范围，socket最大的值加1  在windows下面不产生意义，可以写0，在linux下面代表最大连接数加1
