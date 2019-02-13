@@ -211,13 +211,17 @@ int main()
 			{
 				printf("ERROR,接收到无效客户端连接\n");
 			}
-			for (int n = (int)g_clients.size() - 1; n >= 0; n--)
+			else
 			{
-				NewUserJoin userJoin;
-				send(g_clients[n], (const char*)&userJoin, sizeof(NewUserJoin), 0);
+				for (int n = (int)g_clients.size() - 1; n >= 0; n--)
+				{
+					NewUserJoin userJoin;
+					send(g_clients[n], (const char*)&userJoin, sizeof(NewUserJoin), 0);
+				}
+				g_clients.push_back(_cSock);
+				printf("新客户端加入：ip = %s \n", inet_ntoa(clientAddr.sin_addr));
 			}
-			g_clients.push_back(_cSock);
-			printf("新客户端加入：ip = %s \n", inet_ntoa(clientAddr.sin_addr));
+			
 		}
 		for (size_t n = 0; n < fdRead.fd_count; n++) 
 		{
