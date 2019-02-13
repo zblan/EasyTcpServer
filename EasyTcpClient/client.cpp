@@ -9,6 +9,8 @@
 //在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
 //#pragma comment(lib, "ws2_32.lib")
 #include<stdio.h>
+//引入c++标准线程库 c++11正式加入标准库  还有第三方线程库pthread
+#include<thread>
 
 //内存对齐
 struct DataPackage
@@ -97,23 +99,56 @@ int process(SOCKET _cSock)
 		{
 			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 			LoginResult* login = (LoginResult*)szRecv;
-			printf("收到服务端消息：CMD_LOGIN_RESULT 数据长度：%d \n", _cSock, login->dataLength);
+			printf("收到服务端消息：CMD_LOGIN_RESULT 数据长度：%d \n", login->dataLength);
 		}
 		break;
 		case CMD_LOGOUT_RESULT:
 		{
 			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 			LogoutResult* logout = (LogoutResult*)szRecv;
-			printf("收到服务端消息：CMD_LOGOUT_RESULT 数据长度：%d \n", _cSock, logout->dataLength);
+			printf("收到服务端消息：CMD_LOGOUT_RESULT 数据长度：%d \n", logout->dataLength);
 		}
 		break;
 		case CMD_NEW_USER_JOIN:
 		{
 			recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 			NewUserJoin* user_join = (NewUserJoin*)szRecv;
-			printf("收到服务端消息：CMD_NEW_USER_JOIN 数据长度：%d \n", _cSock, user_join->dataLength);
+			printf("收到服务端消息：CMD_NEW_USER_JOIN 数据长度：%d \n", user_join->dataLength);
 		}
 		break;
+	}
+}
+
+bool g_bRun = true;
+void cmdThread(SOCKET _sock)
+{
+	while (true)
+	{
+		char cmdBuff[256] = {};
+		scanf("%s", cmdBuff);
+		if (0 == strcmp(cmdBuff, "exit"))
+		{
+			g_bRun = false;
+			printf("退出cmdThread线程 \n");
+			return;
+		}
+		else if (0 == strcmp(cmdBuff, "login"))
+		{
+			Login login;
+			strcpy(login.userName, "lanzhibo");
+			strcpy(login.passWord, "123");
+			send(_sock, (const char*)&login, sizeof(Login), 0);
+		}
+		else if (0 == strcmp(cmdBuff, "logout"))
+		{
+			LoginOut logout;
+			strcpy(logout.userName, "lanzhibo");
+			send(_sock, (const char*)&logout, sizeof(LoginOut), 0);
+		}
+		else
+		{
+			printf("不支持的命令\n");
+		}
 	}
 }
 
@@ -146,7 +181,12 @@ int main()
 		printf("connect success \n");
 	}
 
-	while (true) {
+	//线程 thread scanf是阻塞的   使用线程异步获取输入
+	std::thread t1(cmdThread, _sock);
+	//与主线程分离
+	t1.detach();
+
+	while (g_bRun) {
 		FD_SET fdReader;
 		FD_ZERO(&fdReader);
 		FD_SET(_sock, &fdReader);
@@ -166,12 +206,6 @@ int main()
 				break;
 			}
 		}
-		printf("空闲处理其他业务\n");
-		Login login;
-		strcpy(login.userName, "lanzhibo");
-		strcpy(login.passWord, "123");
-		send(_sock,(const char *)&login, sizeof(Login), 0);
-		//Sleep(1000);
 	}
 	
 	//4 关闭套接字closesocket
