@@ -126,6 +126,7 @@ int process(SOCKET _cSock)
 		}
 		break;
 	}
+    return 0;
 }
 
 bool g_bRun = true;
