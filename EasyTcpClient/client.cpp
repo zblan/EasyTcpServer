@@ -6,6 +6,9 @@
     #include <Windows.h>
     //windows环境下开发网络编程需要引入的socket头文件
     #include <WinSock2.h>
+	//windows环境下进行引入动态链接库  WSAStartup
+	//在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
+	//#pragma comment(lib, "ws2_32.lib")
 #else
     #include<unistd.h>
     #include<arpa/inet.h>
@@ -14,9 +17,7 @@
     #define INVALID_SOCKET  (SOCKET)(~0)
     #define SOCKET_ERROR            (-1)
 #endif
-//windows环境下进行引入动态链接库  WSAStartup
-//在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
-//#pragma comment(lib, "ws2_32.lib")
+
 #include<stdio.h>
 //引入c++标准线程库 c++11正式加入标准库  还有第三方线程库pthread
 #include<thread>
