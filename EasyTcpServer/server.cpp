@@ -1,14 +1,23 @@
-//尽量避免早期的宏的引入
-#define WIN32_LEAN_AND_MEAN
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-//Windows.h里面的宏和WinSock2里面的宏有重复
-//Windows环境下开发
-#include <Windows.h>
-//windows环境下开发网络编程需要引入的socket头文件
-#include <WinSock2.h>
-//windows环境下进行引入动态链接库  WSAStartup
-//在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
-//#pragma comment(lib, "ws2_32.lib")
+#ifdef _WIN32
+    //尽量避免早期的宏的引入
+    #define WIN32_LEAN_AND_MEAN
+    //Windows.h里面的宏和WinSock2里面的宏有重复
+    //Windows环境下开发
+    #define _WINSOCK_DEPRECATED_NO_WARNINGS
+    #include <Windows.h>
+    //windows环境下开发网络编程需要引入的socket头文件
+    #include <WinSock2.h>
+        //windows环境下进行引入动态链接库  WSAStartup
+        //在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
+        //#pragma comment(lib, "ws2_32.lib")
+#else
+    #include<unistd.h>
+    #include<arpa/inet.h>
+    #include<string.h>
+    #define SOCKET int
+    #define INVALID_SOCKET  (SOCKET)(~0)
+    #define SOCKET_ERROR            (-1)
+#endif
 #include<stdio.h>
 #include<vector>
 //内存对齐
@@ -88,7 +97,7 @@ int process(SOCKET _cSock)
 	//缓冲区,把消息先放到缓冲区里面
 	char szRecv[1024] = {};
 	//5接收客户端数据
-	int nLen = recv(_cSock, (char*)&szRecv, sizeof(DataHeader), 0);
+	int nLen = (int)recv(_cSock, (char*)&szRecv, sizeof(DataHeader), 0);
 	DataHeader* header = (DataHeader*)szRecv;
 	if (nLen <= 0) {
 		printf("客户端<Socket=%d>已退出，任务结束。\n", _cSock);
@@ -123,14 +132,17 @@ int process(SOCKET _cSock)
 		send(_cSock, (char*)&header, sizeof(header), 0);
 		break;
 	}
+    return 0;
 }
 
 int main()
 {
+#ifdef _WIN32
 	//创建版本号
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat;
 	WSAStartup(ver, &dat);
+#endif
 	//1 建立一个socket
 	//2 bind 绑定用于接收客户端连接的网络端口
 	//3 listen 监听网络端口
@@ -149,7 +161,11 @@ int main()
 	_sin.sin_family = AF_INET;
 	_sin.sin_port = htons(4567);  //host to net unsigned short 字节序转换
 	//设置绑定到那个IP地址上   一台机器有很多地址
+#ifdef _WIN32
 	_sin.sin_addr.S_un.S_addr = INADDR_ANY; //inet_addr("127.0.0.1");
+#else
+        _sin.sin_addr.s_addr = INADDR_ANY;
+#endif
 	if (SOCKET_ERROR == bind(_sock, (sockaddr*)&_sin, sizeof(_sin)))
 	{
 		printf("ERROR,绑定网络端口失败\n");
@@ -179,16 +195,21 @@ int main()
 		FD_SET(_sock, &fdExp);
 		FD_SET(_sock, &fdWrite);
 		FD_SET(_sock, &fdRead);
+                SOCKET maxSock = _sock;
 		for (int n = (int)g_clients.size() - 1; n >= 0; n--)
 		{
 			FD_SET(g_clients[n], &fdRead);
+                        if(maxSock < g_clients[n])
+                        {
+                            maxSock = g_clients[n];
+                        }
 		}
 		//select最后一个参数  设置时间t，将select变为非阻塞   查询等待时间，到了t时间没有请求，返回
 		//1s 是最大的阻塞时间值，不一定等1s
 		timeval t = {1,0};
 		//伯克利 socket
 		//nfds 第一个参数,是指fd_set集合中所有描述符(socket)范围，socket最大的值加1  在windows下面不产生意义，可以写0，在linux下面代表最大连接数加1
-		int ret = select(_sock+1, &fdRead, &fdWrite, &fdExp, &t);
+		int ret = select(maxSock+1, &fdRead, &fdWrite, &fdExp, &t);
 		if (ret < 0)
 		{
 			printf("select任务结束。 \n");
@@ -206,7 +227,11 @@ int main()
 
 
 			//循环accept多次
-			_cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
+#ifdef _WIN32
+                       _cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
+#else
+			_cSock = accept(_sock, (sockaddr*)&clientAddr, (socklen_t *)&nAddrLen);
+#endif
 			if (_cSock == INVALID_SOCKET)
 			{
 				printf("ERROR,接收到无效客户端连接\n");
@@ -223,29 +248,56 @@ int main()
 			}
 			
 		}
-		for (size_t n = 0; n < fdRead.fd_count; n++) 
-		{
-			if (-1 == process(fdRead.fd_array[n]))
-			{
-				auto iter = find(g_clients.begin(), g_clients.end(), fdRead.fd_array[n]);
-				if (iter != g_clients.end())
-				{
-					g_clients.erase(iter);
-				}
-			}
-		}
-		printf("空闲处理其他业务\n");
-	}
+// fdRead结构体在windows系统有fd_count
+//		for (size_t n = 0; n < fdRead.fd_count; n++) 
+//		{
+//			if (-1 == process(fdRead.fd_array[n]))
+//			{
+//				auto iter = find(g_clients.begin(), g_clients.end(), fdRead.fd_array[n]);
+//				if (iter != g_clients.end())
+//				{
+//					g_clients.erase(iter);
+//				}
+//			}
+//		}
+                for(int n = (int)g_clients.size() - 1; n >= 0; n--)
+                {
+                    if(FD_ISSET(g_clients[n], &fdRead))
+                    {
+                        if(-1 == process(g_clients[n]))
+                        {
+                            auto iter = g_clients.begin();
+                            if(iter != g_clients.end())
+                            {
+                                g_clients.erase(iter);
+                            }
+                        }
+                    }
 
+                }
+		//printf("空闲处理其他业务\n");
+	}
+#ifdef _WON32
 	//8 关闭套接字 close socket
-	for (size_t n = g_clients.size() - 1; n >= 0; n--)
+//	for (size_t n = g_clients.size() - 1; n >= 0; n--)
+        for (int n = (int)g_clients.size() - 1; n >= 0; n--)
 	{
+
 		closesocket(g_clients[n]);
 	}
 	closesocket(_sock);
 
 	//	清楚windows socket环境
 	WSACleanup();
+#else
+        //size_t 是无符号的，大于等于0是永远true的
+        for (int n = (int)g_clients.size() - 1; n >= 0; n--)
+        {
+ 
+                close(g_clients[n]);
+        }
+        close(_sock);
+#endif
 	getchar();
 	return 0;
 }
