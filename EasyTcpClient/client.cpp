@@ -2,7 +2,7 @@
 #define WIN32_LEAN_AND_MEAN
 //Windows.h里面的宏和WinSock2里面的宏有重复
 //Windows环境下开发
-#ifdef WIN_32
+#ifdef _WIN32
     #include <Windows.h>
     //windows环境下开发网络编程需要引入的socket头文件
     #include <WinSock2.h>
