@@ -2,9 +2,18 @@
 #define WIN32_LEAN_AND_MEAN
 //Windows.h里面的宏和WinSock2里面的宏有重复
 //Windows环境下开发
-#include <Windows.h>
-//windows环境下开发网络编程需要引入的socket头文件
-#include <WinSock2.h>
+#ifdef WIN_32
+    #include <Windows.h>
+    //windows环境下开发网络编程需要引入的socket头文件
+    #include <WinSock2.h>
+#else
+    #include<unistd.h>
+    #include<arpa/inet.h>
+    #include<string.h>
+    #define SOCKET int
+    #define INVALID_SOCKET  (SOCKET)(~0)
+    #define SOCKET_ERROR            (-1)
+#endif
 //windows环境下进行引入动态链接库  WSAStartup
 //在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
 //#pragma comment(lib, "ws2_32.lib")
@@ -154,10 +163,12 @@ void cmdThread(SOCKET _sock)
 
 int main()
 {
+#ifdef _WIN32
 	//创建版本号
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat;
 	WSAStartup(ver, &dat);
+#endif
 	//----------------------------
 	//1 建立socket
 	SOCKET _sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -172,7 +183,11 @@ int main()
 	sockaddr_in _sin = {};
 	_sin.sin_family = AF_INET;
 	_sin.sin_port = htons(4567);
-	_sin.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+#ifdef _WIN_32
+        _sin.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+#else
+        _sin.sin_addr.s_addr = inet_addr("192.168.199.1");
+#endif
 	int ret = connect(_sock, (sockaddr*)&_sin, sizeof(sockaddr_in));
 	if (ret == SOCKET_ERROR) {
 		printf("error, connect socket faild \n");
@@ -187,7 +202,7 @@ int main()
 	t1.detach();
 
 	while (g_bRun) {
-		FD_SET fdReader;
+		fd_set fdReader;
 		FD_ZERO(&fdReader);
 		FD_SET(_sock, &fdReader);
 		timeval t = { 1,0 };
@@ -209,9 +224,13 @@ int main()
 	}
 	
 	//4 关闭套接字closesocket
+#ifdef _WIN32
 	closesocket(_sock);
 	//清除windows socket环境
 	WSACleanup();
+#else
+	close(_sock);
+#endif
 	getchar();
 	return 0;
 }
