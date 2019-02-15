@@ -7,9 +7,9 @@
     #include <Windows.h>
     //windows环境下开发网络编程需要引入的socket头文件
     #include <WinSock2.h>
-        //windows环境下进行引入动态链接库  WSAStartup
-        //在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
-        //#pragma comment(lib, "ws2_32.lib")
+    //windows环境下进行引入动态链接库  WSAStartup
+    //在其他系统平台下不能使用  可以将ws2_32.lib 配置到工程 属性 链接器里面
+    //#pragma comment(lib, "ws2_32.lib")
 #else
     #include<unistd.h>
     #include<arpa/inet.h>
@@ -164,7 +164,7 @@ int main()
 #ifdef _WIN32
 	_sin.sin_addr.S_un.S_addr = INADDR_ANY; //inet_addr("127.0.0.1");
 #else
-        _sin.sin_addr.s_addr = INADDR_ANY;
+    _sin.sin_addr.s_addr = INADDR_ANY;
 #endif
 	if (SOCKET_ERROR == bind(_sock, (sockaddr*)&_sin, sizeof(_sin)))
 	{
@@ -199,10 +199,10 @@ int main()
 		for (int n = (int)g_clients.size() - 1; n >= 0; n--)
 		{
 			FD_SET(g_clients[n], &fdRead);
-                        if(maxSock < g_clients[n])
-                        {
-                            maxSock = g_clients[n];
-                        }
+				if(maxSock < g_clients[n])
+				{
+					maxSock = g_clients[n];
+				}
 		}
 		//select最后一个参数  设置时间t，将select变为非阻塞   查询等待时间，到了t时间没有请求，返回
 		//1s 是最大的阻塞时间值，不一定等1s
@@ -260,24 +260,24 @@ int main()
 //				}
 //			}
 //		}
-                for(int n = (int)g_clients.size() - 1; n >= 0; n--)
+        for(int n = (int)g_clients.size() - 1; n >= 0; n--)
+        {
+            if(FD_ISSET(g_clients[n], &fdRead))
+            {
+                if(-1 == process(g_clients[n]))
                 {
-                    if(FD_ISSET(g_clients[n], &fdRead))
+                    auto iter = g_clients.begin()+n;
+                    if(iter != g_clients.end())
                     {
-                        if(-1 == process(g_clients[n]))
-                        {
-                            auto iter = g_clients.begin();
-                            if(iter != g_clients.end())
-                            {
-                                g_clients.erase(iter);
-                            }
-                        }
+                        g_clients.erase(iter);
                     }
-
                 }
+            }
+
+        }
 		//printf("空闲处理其他业务\n");
 	}
-#ifdef _WON32
+#ifdef _WIN32
 	//8 关闭套接字 close socket
 //	for (size_t n = g_clients.size() - 1; n >= 0; n--)
         for (int n = (int)g_clients.size() - 1; n >= 0; n--)
