@@ -1,3 +1,7 @@
+//防止多次引入 MessageHeader.hpp头文件
+#ifndef _MessageHeader_hpp_
+#define _MessageHeader_hpp_
+
 //内存对齐
 struct DataPackage
 {
@@ -68,3 +72,5 @@ struct NewUserJoin : public DataHeader
 	}
 	int sock_id;
 };
+
+#endif // !_MessageHeader_hpp_

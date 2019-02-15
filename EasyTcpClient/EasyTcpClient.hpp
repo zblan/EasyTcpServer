@@ -77,10 +77,10 @@ public:
 #endif
 		int ret = connect(_sock, (sockaddr*)&_sin, sizeof(sockaddr_in));
 		if (ret == SOCKET_ERROR) {
-			printf("错误, 连接服务器失败...... \n");
+			printf("<socket=%d>错误, 连接服务器<%s:%d>失败...... \n", _sock, ip, port);
 		}
 		else {
-			printf("连接服务器成功....... \n");
+			printf("<socket=%d>连接服务器<%s:%d>成功....... \n", _sock, ip, port);
 		}
 		return ret;
 	}
@@ -145,7 +145,7 @@ public:
 		DataHeader* header = (DataHeader*)szRecv;
 		if (nLen <= 0)
 		{
-			printf("与服务器断开连接，任务结束。\n");
+			printf("<socket=%d>与服务器断开连接，任务结束。\n", _cSock);
 			return -1;
 		}
 		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
@@ -162,19 +162,19 @@ public:
 			{
 				//基类转换成子类
 				LoginResult* login = (LoginResult*)header;
-				printf("收到服务端消息：CMD_LOGIN_RESULT 数据长度：%d \n", login->dataLength);
+				printf("<socket=%d>收到服务端消息：CMD_LOGIN_RESULT 数据长度：%d \n", _sock, login->dataLength);
 			}
 			break;
 			case CMD_LOGOUT_RESULT:
 			{
 				LogoutResult* logout = (LogoutResult*)header;
-				printf("收到服务端消息：CMD_LOGOUT_RESULT 数据长度：%d \n", logout->dataLength);
+				printf("<socket=%d>收到服务端消息：CMD_LOGOUT_RESULT 数据长度：%d \n", _sock, logout->dataLength);
 			}
 			break;
 			case CMD_NEW_USER_JOIN:
 			{
 				NewUserJoin* user_join = (NewUserJoin*)header;
-				printf("收到服务端消息：CMD_NEW_USER_JOIN 数据长度：%d \n", user_join->dataLength);
+				printf("<socket=%d>收到服务端消息：CMD_NEW_USER_JOIN 数据长度：%d \n", _sock, user_join->dataLength);
 			}
 			break;
 		}

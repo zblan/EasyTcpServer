@@ -228,7 +228,7 @@ int main()
 
 			//Ñ­»·accept¶à´Î
 #ifdef _WIN32
-                       _cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
+			 _cSock = accept(_sock, (sockaddr*)&clientAddr, &nAddrLen);
 #else
 			_cSock = accept(_sock, (sockaddr*)&clientAddr, (socklen_t *)&nAddrLen);
 #endif
